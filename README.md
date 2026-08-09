@@ -1,60 +1,74 @@
-# sol.js — The ethers.js of the Solana protocol
+# sol.js
 
-A lightweight, developer-friendly TypeScript library inspired by ethers.js for building on Solana.
+**The ethers.js of the Solana protocol.**
 
-Goals
-- High-level TypeScript library with ergonomic Provider/Signer/Transaction primitives.
-- First-class, built-in Jito bundle support (not bolted on).
-- Clear separation of core primitives and Jito-specific bundle/client APIs.
-- Modern ESM-first builds with dual CJS output for compatibility via tsup.
+A high-level, developer-friendly TypeScript library for Solana with **first-class Jito bundle support**.
 
-Locked architecture tree
+## Goals
 
+- Ethers.js-style developer experience for Solana
+- Native, first-class Jito bundles (not bolted on)
+- Clean core primitives: `Provider`, `Signer`/`Wallet`, `Transaction`, `Bundle`
+- Modern ESM + dual CJS builds
+
+## Architecture
+
+```
 src/
-├─ index.ts             # Public exports
-├─ types.ts             # Shared primitives (Address, Lamports, Commitment)
-├─ provider.ts          # Provider + ProviderConfig + Cluster
-├─ signer.ts            # Signer interface, KeypairSigner, Wallet
-├─ transaction.ts       # Transaction class (chainable)
-├─ utils/
-│  └─ index.ts          # assert, sleep
-└─ jito/
-   ├─ index.ts          # jito public exports
-   ├─ bundle.ts         # Bundle class (.add, .tip)
-   └─ client.ts         # JitoClient (Block Engine)
-
-Design principles
-- Minimal and well-typed public surface inspired by ethers.js ergonomics.
-- Small surface area to iterate quickly; implementation to follow the scaffold.
-- Avoid naming collisions with official @solana/* and jito-labs packages by using simple, unique names.
-- Clear TODOs in code; placeholder methods throw `not implemented yet` to make intentions explicit.
-
-Status
-- [x] Scaffolding done (files + types + placeholders)
-- [ ] Implement Provider internals
-- [ ] Implement Signer/Wallet
-- [ ] Implement Transaction serialization and send logic
-- [ ] Implement Jito bundle integration and client
-
-Quick start (example)
-
-```ts
-import { Provider } from 'sol.js'
-import { Bundle } from 'sol.js/jito'
-
-const provider = new Provider({ cluster: 'devnet' })
-const bundle = new Bundle()
-
-bundle.add({ /* instruction or transaction */ })
-bundle.tip(1000)
-
-// Placeholder methods will throw until implemented
-await provider.getBalance('YourAddress')
-await provider.sendBundle(bundle)
+├── index.ts                 # Public API
+├── types.ts
+├── provider.ts              # High-level Provider
+├── signer.ts                # KeypairSigner + Wallet
+├── transaction.ts           # Chainable Transaction builder
+├── jito/
+│   ├── index.ts
+│   ├── client.ts            # Block Engine client
+│   └── bundle.ts            # First-class Bundle + tip support
+└── utils/
 ```
 
-What's next
-- Implement the Provider using @solana/web3.js Connection.
-- Wire Signer/KeypairSigner to Keypair from @solana/web3.js.
-- Implement Transaction and Bundle serialization with Jito-specific RPC.
+## Status
 
+- [x] Project structure + TypeScript setup
+- [x] Provider (Connection, getBalance, sendTransaction, sendAndConfirm)
+- [x] Wallet / KeypairSigner
+- [x] Transaction builder
+- [x] Jito Bundle + tip serialization
+- [x] JitoClient
+- [x] Examples + smoke test
+- [ ] More tests + CI
+- [ ] Pump.fun helpers (future)
+
+## Install
+
+```bash
+npm install sol.js @solana/web3.js bs58
+```
+
+## Quick Start
+
+```typescript
+import { Provider, Wallet, Transaction, Bundle } from "sol.js";
+
+const provider = new Provider("devnet", { jito: true });
+const wallet = await Wallet.fromFile("~/.config/solana/id.json");
+provider.setSigner(wallet);
+
+// Normal transfer
+const tx = new Transaction()
+  .transfer(wallet.publicKey, recipient, 1_000_000);
+
+const sig = await tx.send(provider);
+
+// Jito bundle with tip
+const bundle = new Bundle()
+  .add(await tx.build(provider))
+  .tip(0.0001); // 0.0001 SOL tip
+
+const bundleId = await provider.sendBundle(bundle);
+console.log("Bundle ID:", bundleId);
+```
+
+## License
+
+MIT © Dr. Q and Company
